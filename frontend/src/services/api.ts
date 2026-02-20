@@ -70,9 +70,12 @@ export async function runPipeline(
 }
 
 export async function getPipelineStatus(
-  sessionId: string
+  sessionId: string,
+  after: number = 0
 ): Promise<PipelineStatus> {
-  const res = await api.get(`/pipeline/${sessionId}/status`);
+  const res = await api.get(`/pipeline/${sessionId}/status`, {
+    params: { after },
+  });
   return res.data;
 }
 
@@ -102,11 +105,28 @@ export async function updateLeadEmail(
 
 export async function generateEmails(
   sessionId: string,
-  senderContext: string
+  senderContext: string,
+  systemPrompt?: string
 ): Promise<void> {
   await api.post(`/generate/${sessionId}`, {
     sender_context: senderContext,
+    system_prompt: systemPrompt || null,
   });
+}
+
+export interface PromptPreview {
+  system_prompt: string;
+  sender_context: string;
+  original_query: string;
+  lead_info_template: string;
+  leads: { lead_id: string; lead_name: string; lead_info: string }[];
+}
+
+export async function getPromptPreview(
+  sessionId: string
+): Promise<PromptPreview> {
+  const res = await api.get(`/generate/${sessionId}/prompt-preview`);
+  return res.data;
 }
 
 export async function downloadExportCsv(sessionId: string): Promise<void> {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { Lead, PipelineStatus } from '../types';
+import type { Lead, PipelineStatus, LogEntry } from '../types';
 import { getPipelineStatus, getLeads } from '../services/api';
 
 interface UsePipelineReturn {
@@ -9,14 +9,17 @@ interface UsePipelineReturn {
   isRunning: boolean;
   error: string | null;
   leads: Lead[];
+  logs: LogEntry[];
   refetchLeads: () => Promise<void>;
 }
 
 export function usePipeline(sessionId: string | null): UsePipelineReturn {
   const [status, setStatus] = useState<PipelineStatus | null>(null);
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const logCountRef = useRef(0);
 
   const fetchLeads = useCallback(async () => {
     if (!sessionId) return;
@@ -31,10 +34,23 @@ export function usePipeline(sessionId: string | null): UsePipelineReturn {
   useEffect(() => {
     if (!sessionId) return;
 
+    // Reset on new session
+    logCountRef.current = 0;
+    setLogs([]);
+
     const poll = async () => {
       try {
-        const pipelineStatus = await getPipelineStatus(sessionId);
+        const pipelineStatus = await getPipelineStatus(
+          sessionId,
+          logCountRef.current
+        );
         setStatus(pipelineStatus);
+
+        // Append new log entries
+        if (pipelineStatus.logs && pipelineStatus.logs.length > 0) {
+          logCountRef.current += pipelineStatus.logs.length;
+          setLogs((prev) => [...prev, ...pipelineStatus.logs]);
+        }
 
         if (
           pipelineStatus.status === 'completed' ||
@@ -64,8 +80,8 @@ export function usePipeline(sessionId: string | null): UsePipelineReturn {
     // Initial poll
     poll();
 
-    // Set up polling every 2 seconds
-    intervalRef.current = setInterval(poll, 2000);
+    // Poll every 1.5 seconds for smoother updates
+    intervalRef.current = setInterval(poll, 1500);
 
     return () => {
       if (intervalRef.current) {
@@ -87,6 +103,7 @@ export function usePipeline(sessionId: string | null): UsePipelineReturn {
     isRunning,
     error,
     leads,
+    logs,
     refetchLeads: fetchLeads,
   };
 }

@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Search, CheckSquare, Square } from 'lucide-react';
 import type { Lead } from '../types';
 import LeadCard from './LeadCard';
+import LeadDetailOverlay from './LeadDetailOverlay';
 
 interface LeadListProps {
   leads: Lead[];
@@ -10,6 +11,7 @@ interface LeadListProps {
 
 export default function LeadList({ leads, onToggle }: LeadListProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
   const filteredLeads = useMemo(() => {
     if (!searchQuery.trim()) return leads;
@@ -90,9 +92,22 @@ export default function LeadList({ leads, onToggle }: LeadListProps) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           {filteredLeads.map((lead) => (
-            <LeadCard key={lead.id} lead={lead} onToggle={onToggle} />
+            <LeadCard
+              key={lead.id}
+              lead={lead}
+              onToggle={onToggle}
+              onSelect={setSelectedLead}
+            />
           ))}
         </div>
+      )}
+
+      {/* Detail Overlay */}
+      {selectedLead && (
+        <LeadDetailOverlay
+          lead={selectedLead}
+          onClose={() => setSelectedLead(null)}
+        />
       )}
     </div>
   );

@@ -104,10 +104,13 @@ Siyada AI is an end-to-end lead generation engine built for B2B sales teams. It 
 - **HubSpot CSV Export** — 19 columns mapped exactly to HubSpot's import specification.
 
 ### Platform
-- **Pipeline Wizard** — Step-by-step visual progress through each stage with real-time updates.
+- **Live Activity Feed** — Real-time streaming log during pipeline execution. See every query searched, contact found, and email written as it happens — with progress bar and emoji indicators.
+- **Lead Detail Overlay** — Click any lead card to open a full-screen detail view: contact info, role, company, scraped website context, and generated outreach — all in one place.
+- **Prompt & Context Editor** — See and edit the system prompt, sender context, and per-lead data before (re)generating emails. Full control over AI output.
+- **Pipeline Wizard** — Step-by-step visual progress through each stage with real-time step and percentage tracking.
 - **Lead Management** — Select/deselect leads, edit emails, filter and sort results.
 - **Settings Dashboard** — Add, test, and validate API keys with live status indicators.
-- **Model Switcher** — Choose between GPT models based on speed, cost, and quality needs.
+- **Model Switcher** — Choose from 10 OpenAI models (GPT-5.2, 4.1, 4o, o3, o4) based on speed, cost, and quality.
 - **Session History** — Revisit past searches without re-running expensive API calls.
 - **JWT Authentication** — Secure, per-user data isolation.
 - **41 Backend Tests** — Comprehensive test coverage for all API endpoints.
@@ -249,7 +252,8 @@ The app will be available at `http://localhost:5173`.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/api/generate/{session_id}` | Generate outreach emails |
+| `GET` | `/api/generate/{session_id}/prompt-preview` | Preview system prompt and lead data |
+| `POST` | `/api/generate/{session_id}` | Generate outreach emails (accepts custom prompt) |
 | `GET` | `/api/export/{session_id}` | Download HubSpot CSV |
 
 ### Settings
@@ -306,9 +310,12 @@ Choose the right model for your use case:
 |-------|-------|------|---------|----------|
 | **GPT-4.1 Nano** | Fastest | ~$0.10/1M tokens | Good | Query parsing, high volume |
 | **GPT-4o Mini** | Fast | ~$0.15/1M tokens | Good | General purpose, budget runs |
-| **GPT-4.1 Mini** | Fast | ~$0.40/1M tokens | Great | **Recommended** — best value |
-| **GPT-4o** | Medium | ~$2.50/1M tokens | Excellent | High-quality outreach |
-| **GPT-4.1** | Medium | ~$2.00/1M tokens | Excellent | Premium email generation |
+| **GPT-5.2 Mini** | Fast | ~$0.40/1M tokens | Great | **Recommended** — best value |
+| **GPT-4.1 Mini** | Fast | ~$0.40/1M tokens | Great | Best value alternative |
+| **o3 Mini / o4 Mini** | Medium | ~$1.10/1M tokens | Excellent | Reasoning + structured tasks |
+| **GPT-5.2** | Medium | ~$2.00/1M tokens | Superior | Best quality outreach |
+| **GPT-4.1 / GPT-4o** | Medium | ~$2.00-2.50/1M | Excellent | Premium email generation |
+| **o3** | Slower | ~$10.00/1M tokens | Best | Complex research queries |
 
 > Switch models anytime from the **Settings** page. The selected model is used for both query parsing and email generation.
 
@@ -374,7 +381,8 @@ leads-hubspot/
 │   │       ├── apollo_service.py     # Contact enrichment via Apollo.io
 │   │       ├── scraper_service.py    # Website content extraction
 │   │       ├── export_service.py     # HubSpot CSV generation
-│   │       └── pipeline_service.py   # 5-stage pipeline orchestrator
+│   │       ├── pipeline_service.py   # 5-stage pipeline orchestrator
+│   │       └── pipeline_log.py      # In-memory activity log for live feed
 │   ├── tests/                        # 41 pytest tests
 │   ├── requirements.txt
 │   └── .env.example
@@ -390,8 +398,11 @@ leads-hubspot/
 │   │   │   └── RegisterPage.tsx
 │   │   ├── components/               # Reusable UI components
 │   │   │   ├── PipelineStepper.tsx   # 5-stage progress wizard
+│   │   │   ├── ActivityFeed.tsx      # Live streaming event log
 │   │   │   ├── LeadCard.tsx          # Individual lead display
 │   │   │   ├── LeadList.tsx          # Filterable lead grid
+│   │   │   ├── LeadDetailOverlay.tsx # Full lead detail modal
+│   │   │   ├── PromptEditor.tsx      # System prompt & context editor
 │   │   │   ├── EmailPreview.tsx      # Email editor with regenerate
 │   │   │   ├── ExportSummary.tsx     # Export stats + download
 │   │   │   ├── Layout.tsx            # App shell with sidebar
@@ -431,7 +442,11 @@ leads-hubspot/
 - [x] HubSpot CSV export (19 columns)
 - [x] JWT authentication
 - [x] API key management with live testing
-- [x] Model switcher
+- [x] Model switcher (10 models, GPT-5.2 to o4)
+- [x] Live activity feed with streaming progress
+- [x] Prompt & context editor for outreach customization
+- [x] Lead detail overlay with full data view
+- [x] Apollo.io 2-step enrichment (search + match)
 - [x] 41 backend tests
 - [ ] Direct HubSpot API integration (auto-import)
 - [ ] CSV upload for bulk enrichment

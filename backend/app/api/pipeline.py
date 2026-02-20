@@ -6,9 +6,10 @@ from app.core.database import get_db, SessionLocal
 from app.core.security import get_current_user
 from app.models.user import User
 from app.models.search_session import SearchSession
-from app.schemas.pipeline import PipelineRunRequest, PipelineStatusResponse
+from app.schemas.pipeline import PipelineRunRequest, PipelineStatusResponse, LogEntry
 from app.schemas.search import SessionResponse
 from app.services import pipeline_service
+from app.services import pipeline_log
 
 router = APIRouter(prefix="/api/pipeline", tags=["pipeline"])
 
@@ -112,10 +113,11 @@ def list_sessions(
 @router.get("/{session_id}/status", response_model=PipelineStatusResponse)
 def get_pipeline_status(
     session_id: str,
+    after: int = 0,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Get the current status of a pipeline run."""
+    """Get the current status of a pipeline run, including activity logs."""
     session = (
         db.query(SearchSession)
         .filter(
@@ -139,9 +141,16 @@ def get_pipeline_status(
         "failed": "Pipeline encountered an error. Please try again.",
     }
 
+    progress = pipeline_log.get_progress(session_id)
+    raw_logs = pipeline_log.get_logs(session_id, after=after)
+    log_entries = [LogEntry(**entry) for entry in raw_logs]
+
     return PipelineStatusResponse(
         session_id=session.id,
         status=session.status,
         result_count=session.result_count or 0,
         message=status_messages.get(session.status, "Unknown status"),
+        current_step=progress.get("step", ""),
+        progress_pct=progress.get("pct", 0),
+        logs=log_entries,
     )

@@ -91,22 +91,25 @@ async def test_api_key(
         elif service == "apollo":
             async with httpx.AsyncClient(timeout=15.0) as client:
                 response = await client.post(
-                    "https://api.apollo.io/api/v1/mixed_people/search",
+                    "https://api.apollo.io/api/v1/mixed_people/api_search",
                     json={
-                        "q_organization_domains": "apollo.io",
+                        "q_organization_domains_list": ["apollo.io"],
                         "page": 1,
                         "per_page": 1,
                     },
                     headers={
                         "X-Api-Key": api_key,
                         "Content-Type": "application/json",
+                        "Cache-Control": "no-cache",
                     },
                 )
                 response.raise_for_status()
+                data = response.json()
+                total = data.get("total_entries", 0)
             return ApiKeyTestResponse(
                 service=service,
                 status="valid",
-                message="Apollo API key is valid. Test query succeeded.",
+                message=f"Apollo API key is valid. Found {total:,} entries.",
             )
 
         elif service == "openai":

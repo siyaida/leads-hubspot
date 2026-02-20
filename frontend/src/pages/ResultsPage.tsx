@@ -18,9 +18,11 @@ import {
 } from '../services/api';
 import type { Lead, SearchSession } from '../types';
 import PipelineStepper from '../components/PipelineStepper';
+import ActivityFeed from '../components/ActivityFeed';
 import LeadList from '../components/LeadList';
 import EmailPreview from '../components/EmailPreview';
 import ExportSummary from '../components/ExportSummary';
+import PromptEditor from '../components/PromptEditor';
 
 type Tab = 'leads' | 'outreach' | 'export';
 
@@ -29,9 +31,11 @@ export default function ResultsPage() {
   const {
     status: pipelineStatus,
     currentStep,
+    progress,
     isRunning,
     error: pipelineError,
     leads: pipelineLeads,
+    logs,
     refetchLeads,
   } = usePipeline(sessionId || null);
 
@@ -116,12 +120,19 @@ export default function ResultsPage() {
     }
   };
 
-  const handleGenerateAllEmails = async () => {
+  const handleGenerateWithPrompt = async (
+    senderContext: string,
+    systemPrompt: string
+  ) => {
     if (!sessionId) return;
     setGeneratingEmails(true);
     setError(null);
     try {
-      await generateEmails(sessionId, '');
+      await generateEmails(
+        sessionId,
+        senderContext,
+        systemPrompt || undefined
+      );
       await refetchLeads();
     } catch {
       setError('Failed to generate emails.');
@@ -214,18 +225,12 @@ export default function ResultsPage() {
             currentStep={currentStep}
             status={pipelineStatus.status}
           />
-          {isRunning && (
-            <div className="mt-3 flex items-center justify-center gap-3">
-              <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
-              <p className="text-sm text-[#94a3b8]">
-                {currentStep}...{' '}
-                <span className="text-blue-400 font-medium">
-                  {Math.round(pipelineStatus.progress_pct)}%
-                </span>
-              </p>
-            </div>
-          )}
         </div>
+      )}
+
+      {/* Activity Feed — shown while running or if logs exist and pipeline just finished */}
+      {(isRunning || (logs.length > 0 && pipelineStatus?.status === 'completed')) && (
+        <ActivityFeed logs={logs} progress={progress} />
       )}
 
       {/* Errors */}
@@ -286,30 +291,15 @@ export default function ResultsPage() {
                   </div>
                 ) : (
                   <>
-                    {/* Generate all emails button */}
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-[#94a3b8]">
-                        <span className="text-[#e2e8f0] font-semibold">
-                          {selectedLeads.length}
-                        </span>{' '}
-                        selected leads
-                      </p>
-                      <button
-                        onClick={handleGenerateAllEmails}
-                        disabled={generatingEmails}
-                        className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg"
-                      >
-                        {generatingEmails ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Mail className="w-4 h-4" />
-                        )}
-                        {generatingEmails
-                          ? 'Generating...'
-                          : 'Generate All Emails'}
-                      </button>
-                    </div>
+                    {/* Prompt & Context Editor */}
+                    <PromptEditor
+                      sessionId={sessionId}
+                      onGenerate={handleGenerateWithPrompt}
+                      generating={generatingEmails}
+                      selectedCount={selectedLeads.length}
+                    />
 
+                    {/* Email previews */}
                     {selectedLeads.map((lead) => (
                       <EmailPreview
                         key={lead.id}

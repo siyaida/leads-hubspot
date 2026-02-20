@@ -10,6 +10,30 @@ logger = logging.getLogger(__name__)
 
 OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions"
 
+# ── Default prompts (exposed so the UI can show / override them) ──────────
+
+DEFAULT_EMAIL_SYSTEM_PROMPT = """You are an expert B2B sales email writer. Write personalized, compelling outreach emails
+that feel genuine and not spammy. Focus on value proposition and relevance to the recipient's role.
+
+Respond with valid JSON only:
+{
+  "subject": "Email subject line",
+  "body": "Full email body text",
+  "suggested_approach": "Brief strategy note about why this approach works for this lead"
+}
+
+Keep emails concise (3-4 paragraphs max). Use the lead's name and company details naturally.
+Do not use markdown formatting in the JSON values."""
+
+LEAD_INFO_TEMPLATE = """Lead Information:
+- Name: {first_name} {last_name}
+- Title: {job_title}
+- Company: {company_name}
+- Industry: {company_industry}
+- Location: {city}, {state}, {country}
+- LinkedIn: {linkedin_url}
+- Company Website Context: {scraped_context}"""
+
 
 async def _call_openai(
     messages: list[dict],
@@ -133,8 +157,27 @@ Always respond with valid JSON only, no markdown formatting."""
         }
 
 
+def build_lead_info(lead_data: dict) -> str:
+    """Build the lead context string from lead data dict."""
+    return LEAD_INFO_TEMPLATE.format(
+        first_name=lead_data.get("first_name", "") or "",
+        last_name=lead_data.get("last_name", "") or "",
+        job_title=lead_data.get("job_title", "Unknown") or "Unknown",
+        company_name=lead_data.get("company_name", "Unknown") or "Unknown",
+        company_industry=lead_data.get("company_industry", "Unknown") or "Unknown",
+        city=lead_data.get("city", "") or "",
+        state=lead_data.get("state", "") or "",
+        country=lead_data.get("country", "") or "",
+        linkedin_url=lead_data.get("linkedin_url", "N/A") or "N/A",
+        scraped_context=(lead_data.get("scraped_context", "N/A") or "N/A")[:1000],
+    )
+
+
 async def generate_email(
-    lead_data: dict, sender_context: str, original_query: str
+    lead_data: dict,
+    sender_context: str,
+    original_query: str,
+    custom_system_prompt: Optional[str] = None,
 ) -> dict:
     """Generate a personalized outreach email for a lead."""
     api_key = settings.get_api_key("openai")
@@ -146,27 +189,8 @@ async def generate_email(
             "suggested_approach": "",
         }
 
-    lead_info = f"""Lead Information:
-- Name: {lead_data.get('first_name', '')} {lead_data.get('last_name', '')}
-- Title: {lead_data.get('job_title', 'Unknown')}
-- Company: {lead_data.get('company_name', 'Unknown')}
-- Industry: {lead_data.get('company_industry', 'Unknown')}
-- Location: {lead_data.get('city', '')}, {lead_data.get('state', '')}, {lead_data.get('country', '')}
-- LinkedIn: {lead_data.get('linkedin_url', 'N/A')}
-- Company Website Context: {lead_data.get('scraped_context', 'N/A')[:1000]}"""
-
-    system_prompt = """You are an expert B2B sales email writer. Write personalized, compelling outreach emails
-that feel genuine and not spammy. Focus on value proposition and relevance to the recipient's role.
-
-Respond with valid JSON only:
-{
-  "subject": "Email subject line",
-  "body": "Full email body text",
-  "suggested_approach": "Brief strategy note about why this approach works for this lead"
-}
-
-Keep emails concise (3-4 paragraphs max). Use the lead's name and company details naturally.
-Do not use markdown formatting in the JSON values."""
+    lead_info = build_lead_info(lead_data)
+    system_prompt = custom_system_prompt or DEFAULT_EMAIL_SYSTEM_PROMPT
 
     user_prompt = f"""Original search intent: {original_query}
 

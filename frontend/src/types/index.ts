@@ -37,12 +37,22 @@ export interface Lead {
   is_selected: boolean;
 }
 
+export interface LogEntry {
+  step: string;
+  emoji: string;
+  message: string;
+  detail?: string;
+  timestamp: string;
+}
+
 export interface PipelineStatus {
   session_id: string;
   status: string;
   result_count: number;
   current_step: string;
   progress_pct: number;
+  message: string;
+  logs: LogEntry[];
 }
 
 export interface ApiKeyStatus {
