@@ -7,7 +7,6 @@ import {
   LogOut,
   Menu,
   X,
-  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
@@ -34,17 +33,8 @@ export default function Layout({ children }: LayoutProps) {
   const sidebarContent = (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="p-6 border-b border-[#1e1e2e]">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-6 h-6 text-blue-500" />
-          <div>
-            <h1 className="text-xl font-bold">
-              <span className="text-blue-500">Siyada</span>
-              <span className="text-purple-500"> AI</span>
-            </h1>
-            <p className="text-xs text-[#94a3b8]">Lead Generation</p>
-          </div>
-        </div>
+      <div className="p-5 border-b border-[#1e1e2e]">
+        <img src="/logo.png" alt="Siyada Tech" className="h-10 w-auto" />
       </div>
 
       {/* Navigation */}
@@ -128,10 +118,7 @@ export default function Layout({ children }: LayoutProps) {
               <Menu className="w-5 h-5" />
             )}
           </button>
-          <h1 className="text-lg font-bold">
-            <span className="text-blue-500">Siyada</span>
-            <span className="text-purple-500"> AI</span>
-          </h1>
+          <img src="/logo.png" alt="Siyada Tech" className="h-8 w-auto" />
           <div className="w-9" />
         </header>
 

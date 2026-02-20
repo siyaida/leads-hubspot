@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="logo.png" alt="Siyada Tech" width="400" />
+
 # Siyada AI Lead Generation & Outreach Platform
 
 **Transform natural language into sales-ready leads — enriched, personalized, and HubSpot-imported in minutes.**
