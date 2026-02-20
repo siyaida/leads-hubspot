@@ -1,0 +1,143 @@
+import axios from 'axios';
+import type {
+  User,
+  SearchSession,
+  Lead,
+  PipelineStatus,
+  ApiKeyStatus,
+  ApiKeyTestResult,
+} from '../types';
+
+const api = axios.create({
+  baseURL: '/api',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request interceptor: attach token
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Response interceptor: handle 401
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Auth
+export async function register(
+  email: string,
+  password: string,
+  full_name: string
+): Promise<{ access_token: string; user: User }> {
+  const res = await api.post('/auth/register', { email, password, full_name });
+  return res.data;
+}
+
+export async function login(
+  email: string,
+  password: string
+): Promise<{ access_token: string; user: User }> {
+  const res = await api.post('/auth/login', { email, password });
+  return res.data;
+}
+
+export async function getMe(): Promise<User> {
+  const res = await api.get('/auth/me');
+  return res.data;
+}
+
+// Pipeline
+export async function runPipeline(
+  query: string,
+  sender_context: string
+): Promise<{ session_id: string }> {
+  const res = await api.post('/pipeline/run', { query, sender_context });
+  return res.data;
+}
+
+export async function getPipelineStatus(
+  sessionId: string
+): Promise<PipelineStatus> {
+  const res = await api.get(`/pipeline/${sessionId}/status`);
+  return res.data;
+}
+
+// Leads
+export async function getLeads(sessionId: string): Promise<Lead[]> {
+  const res = await api.get(`/leads/${sessionId}`);
+  return res.data;
+}
+
+export async function toggleLead(
+  leadId: string,
+  isSelected: boolean
+): Promise<void> {
+  await api.patch(`/leads/${leadId}`, { is_selected: isSelected });
+}
+
+export async function updateLeadEmail(
+  leadId: string,
+  subject: string,
+  body: string
+): Promise<void> {
+  await api.patch(`/leads/${leadId}/email`, {
+    email_subject: subject,
+    personalized_email: body,
+  });
+}
+
+export async function generateEmails(
+  sessionId: string,
+  senderContext: string
+): Promise<void> {
+  await api.post(`/generate/${sessionId}`, {
+    sender_context: senderContext,
+  });
+}
+
+export function getExportUrl(sessionId: string): string {
+  return `/api/export/${sessionId}`;
+}
+
+// Sessions
+export async function getSessions(): Promise<SearchSession[]> {
+  const res = await api.get('/pipeline/sessions');
+  return res.data;
+}
+
+// Settings
+export async function getSettings(): Promise<ApiKeyStatus[]> {
+  const res = await api.get('/settings/');
+  return res.data;
+}
+
+export async function getKeyStatuses(): Promise<Record<string, { configured: boolean; masked_key: string }>> {
+  const res = await api.get('/settings/');
+  return res.data;
+}
+
+export async function updateKeys(
+  keys: Record<string, string>
+): Promise<void> {
+  await api.put('/settings/keys', keys);
+}
+
+export async function testKey(service: string): Promise<ApiKeyTestResult> {
+  const res = await api.post(`/settings/test/${service}`);
+  return res.data;
+}
+
+export default api;
