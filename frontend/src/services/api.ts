@@ -6,6 +6,7 @@ import type {
   PipelineStatus,
   ApiKeyStatus,
   ApiKeyTestResult,
+  ModelInfo,
 } from '../types';
 
 const api = axios.create({
@@ -138,6 +139,16 @@ export async function updateKeys(
 export async function testKey(service: string): Promise<ApiKeyTestResult> {
   const res = await api.post(`/settings/test/${service}`);
   return res.data;
+}
+
+// Models
+export async function getModels(): Promise<ModelInfo[]> {
+  const res = await api.get('/settings/models');
+  return res.data;
+}
+
+export async function updateModel(model: string): Promise<void> {
+  await api.put('/settings/model', { model });
 }
 
 export default api;

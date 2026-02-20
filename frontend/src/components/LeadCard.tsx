@@ -8,9 +8,11 @@ interface LeadCardProps {
 }
 
 export default function LeadCard({ lead, onToggle, onSelect }: LeadCardProps) {
-  const fullName = `${lead.first_name} ${lead.last_name}`.trim();
+  const fullName = [lead.first_name, lead.last_name]
+    .filter((v) => v && v !== 'null')
+    .join(' ') || '';
   const location = [lead.city, lead.state, lead.country]
-    .filter(Boolean)
+    .filter((v) => v && v !== 'null')
     .join(', ');
 
   return (

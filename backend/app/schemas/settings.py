@@ -1,4 +1,4 @@
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 from pydantic import BaseModel
 
 
@@ -19,7 +19,20 @@ class ApiKeyTestResponse(BaseModel):
     message: str
 
 
+class ModelInfo(BaseModel):
+    id: str
+    name: str
+    description: str
+    cost: str
+    recommended_for: str
+
+
+class ModelUpdate(BaseModel):
+    model: str
+
+
 class SettingsResponse(BaseModel):
     serper: ApiKeyStatus
     apollo: ApiKeyStatus
     openai: ApiKeyStatus
+    current_model: str = "gpt-4o-mini"

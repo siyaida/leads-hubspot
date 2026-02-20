@@ -74,7 +74,7 @@ export default function Layout({ children }: LayoutProps) {
         <div className="flex items-center justify-between">
           <div className="min-w-0">
             <p className="text-sm text-[#e2e8f0] truncate">
-              {user?.full_name || user?.email}
+              {(user?.full_name && user.full_name !== 'null') ? user.full_name : user?.email}
             </p>
             <p className="text-xs text-[#94a3b8] truncate">{user?.email}</p>
           </div>

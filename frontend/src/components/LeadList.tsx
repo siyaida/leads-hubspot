@@ -16,7 +16,7 @@ export default function LeadList({ leads, onToggle }: LeadListProps) {
     const q = searchQuery.toLowerCase();
     return leads.filter(
       (lead) =>
-        `${lead.first_name} ${lead.last_name}`.toLowerCase().includes(q) ||
+        `${lead.first_name || ''} ${lead.last_name || ''}`.toLowerCase().includes(q) ||
         (lead.company_name || '').toLowerCase().includes(q) ||
         (lead.job_title || '').toLowerCase().includes(q)
     );

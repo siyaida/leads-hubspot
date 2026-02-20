@@ -18,7 +18,7 @@ async def _call_openai(
     temperature: float = 0.7,
 ) -> dict:
     """Make a direct HTTP call to OpenAI chat completions."""
-    model = model or settings.OPENAI_MODEL
+    model = model or settings.get_model()
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",

@@ -56,3 +56,11 @@ export interface ApiKeyTestResult {
   status: 'valid' | 'invalid';
   message: string;
 }
+
+export interface ModelInfo {
+  id: string;
+  name: string;
+  description: string;
+  cost: string;
+  recommended_for: string;
+}

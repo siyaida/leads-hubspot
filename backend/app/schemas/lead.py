@@ -1,37 +1,48 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 
 class LeadResponse(BaseModel):
     id: str
     session_id: str
-    search_result_id: Optional[str] = None
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    email: Optional[str] = None
-    email_status: Optional[str] = None
-    phone: Optional[str] = None
-    job_title: Optional[str] = None
-    headline: Optional[str] = None
-    linkedin_url: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
-    country: Optional[str] = None
-    company_name: Optional[str] = None
-    company_domain: Optional[str] = None
-    company_industry: Optional[str] = None
-    company_size: Optional[str] = None
-    company_linkedin_url: Optional[str] = None
-    scraped_context: Optional[str] = None
-    personalized_email: Optional[str] = None
-    email_subject: Optional[str] = None
-    suggested_approach: Optional[str] = None
+    search_result_id: Optional[str] = ""
+    first_name: Optional[str] = ""
+    last_name: Optional[str] = ""
+    email: Optional[str] = ""
+    email_status: Optional[str] = ""
+    phone: Optional[str] = ""
+    job_title: Optional[str] = ""
+    headline: Optional[str] = ""
+    linkedin_url: Optional[str] = ""
+    city: Optional[str] = ""
+    state: Optional[str] = ""
+    country: Optional[str] = ""
+    company_name: Optional[str] = ""
+    company_domain: Optional[str] = ""
+    company_industry: Optional[str] = ""
+    company_size: Optional[str] = ""
+    company_linkedin_url: Optional[str] = ""
+    scraped_context: Optional[str] = ""
+    personalized_email: Optional[str] = ""
+    email_subject: Optional[str] = ""
+    suggested_approach: Optional[str] = ""
     is_selected: bool = True
     created_at: datetime
     updated_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
+
+    @model_validator(mode="after")
+    def none_to_empty(self):
+        """Convert None string fields to empty strings."""
+        for field_name, field_info in self.model_fields.items():
+            if field_name in ("updated_at", "created_at", "is_selected"):
+                continue
+            val = getattr(self, field_name)
+            if val is None:
+                object.__setattr__(self, field_name, "")
+        return self
 
 
 class LeadUpdate(BaseModel):

@@ -69,6 +69,18 @@ class Settings(BaseSettings):
         if env_attr:
             _save_api_keys({env_attr: value.strip()})
 
+    def get_model(self) -> str:
+        """Get the configured OpenAI model: check api_keys.json first, then fall back to env/settings."""
+        stored = _load_api_keys()
+        stored_model = stored.get("OPENAI_MODEL", "")
+        if stored_model:
+            return stored_model
+        return self.OPENAI_MODEL
+
+    def set_model(self, model: str) -> None:
+        """Persist the OpenAI model choice to api_keys.json."""
+        _save_api_keys({"OPENAI_MODEL": model.strip()})
+
     def get_all_api_keys_masked(self) -> dict:
         """Return masked versions of all API keys for the settings UI."""
         result = {}

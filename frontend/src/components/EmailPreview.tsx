@@ -19,9 +19,11 @@ export default function EmailPreview({
   const [regenerating, setRegenerating] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  const fullName = `${lead.first_name} ${lead.last_name}`.trim();
+  const fullName = [lead.first_name, lead.last_name]
+    .filter((v) => v && v !== 'null')
+    .join(' ') || 'Unknown Contact';
   const location = [lead.city, lead.state, lead.country]
-    .filter(Boolean)
+    .filter((v) => v && v !== 'null')
     .join(', ');
 
   const handleSave = async () => {

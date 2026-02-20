@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.core.config import settings
 from app.core.security import get_current_user
 from app.models.user import User
-from app.schemas.settings import ApiKeyUpdate, ApiKeyTestResponse, SettingsResponse
+from app.schemas.settings import ApiKeyUpdate, ApiKeyTestResponse, SettingsResponse, ModelInfo, ModelUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +23,7 @@ def get_settings(
         serper=masked["serper"],
         apollo=masked["apollo"],
         openai=masked["openai"],
+        current_model=settings.get_model(),
     )
 
 
@@ -44,6 +45,7 @@ def update_keys(
         serper=masked["serper"],
         apollo=masked["apollo"],
         openai=masked["openai"],
+        current_model=settings.get_model(),
     )
 
 
@@ -136,3 +138,66 @@ async def test_api_key(
             status="invalid",
             message=f"API key validation failed: {str(e)}",
         )
+
+
+AVAILABLE_MODELS = [
+    ModelInfo(
+        id="gpt-4o-mini",
+        name="GPT-4o Mini",
+        description="Fast and cost-effective. Best for high-volume lead generation.",
+        cost="~$0.15/1M tokens",
+        recommended_for="query_parsing",
+    ),
+    ModelInfo(
+        id="gpt-4o",
+        name="GPT-4o",
+        description="Balanced performance. Great for email generation quality.",
+        cost="~$2.50/1M tokens",
+        recommended_for="email_generation",
+    ),
+    ModelInfo(
+        id="gpt-4.1",
+        name="GPT-4.1",
+        description="Latest and most capable. Best outreach quality.",
+        cost="~$2.00/1M tokens",
+        recommended_for="email_generation",
+    ),
+    ModelInfo(
+        id="gpt-4.1-mini",
+        name="GPT-4.1 Mini",
+        description="Fast, cheap, excellent quality. Best overall value.",
+        cost="~$0.40/1M tokens",
+        recommended_for="all",
+    ),
+    ModelInfo(
+        id="gpt-4.1-nano",
+        name="GPT-4.1 Nano",
+        description="Ultra-fast and cheapest. Good for parsing only.",
+        cost="~$0.10/1M tokens",
+        recommended_for="query_parsing",
+    ),
+]
+
+
+@router.get("/models", response_model=list[ModelInfo])
+def get_models(
+    current_user: User = Depends(get_current_user),
+):
+    """Return available OpenAI models with descriptions."""
+    return AVAILABLE_MODELS
+
+
+@router.put("/model")
+def update_model(
+    payload: ModelUpdate,
+    current_user: User = Depends(get_current_user),
+):
+    """Update the configured OpenAI model."""
+    valid_ids = {m.id for m in AVAILABLE_MODELS}
+    if payload.model not in valid_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid model. Must be one of: {', '.join(valid_ids)}",
+        )
+    settings.set_model(payload.model)
+    return {"model": payload.model, "status": "updated"}

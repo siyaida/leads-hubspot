@@ -14,13 +14,20 @@ import {
   AlertCircle,
   ArrowRight,
   Zap,
+  Cpu,
+  Crown,
+  Sparkles,
+  CircleDollarSign,
+  Rocket,
 } from 'lucide-react';
 import {
   getKeyStatuses,
   updateKeys,
   testKey,
+  getModels,
+  updateModel,
 } from '../services/api';
-import type { ApiKeyStatus, ApiKeyTestResult } from '../types';
+import type { ApiKeyStatus, ApiKeyTestResult, ModelInfo } from '../types';
 
 interface ServiceConfig {
   service: string;
@@ -67,11 +74,22 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [models, setModels] = useState<ModelInfo[]>([]);
+  const [currentModel, setCurrentModel] = useState<string>('gpt-4o-mini');
+  const [selectedModel, setSelectedModel] = useState<string>('gpt-4o-mini');
+  const [modelSaving, setModelSaving] = useState(false);
+  const [modelSaveSuccess, setModelSaveSuccess] = useState(false);
 
   const fetchStatuses = async () => {
     try {
       const data = await getKeyStatuses();
       setKeyStatuses(data as unknown as Record<string, ApiKeyStatus>);
+      // Extract current_model from settings response
+      const settingsData = data as unknown as Record<string, unknown>;
+      if (settingsData.current_model) {
+        setCurrentModel(settingsData.current_model as string);
+        setSelectedModel(settingsData.current_model as string);
+      }
     } catch {
       // ignore
     } finally {
@@ -79,8 +97,18 @@ export default function SettingsPage() {
     }
   };
 
+  const fetchModels = async () => {
+    try {
+      const data = await getModels();
+      setModels(data);
+    } catch {
+      // ignore
+    }
+  };
+
   useEffect(() => {
     fetchStatuses();
+    fetchModels();
   }, []);
 
   const handleTestKey = async (service: string) => {
@@ -149,6 +177,43 @@ export default function SettingsPage() {
     }
   };
 
+  const handleModelSave = async () => {
+    if (selectedModel === currentModel) return;
+    setModelSaving(true);
+    setModelSaveSuccess(false);
+    try {
+      await updateModel(selectedModel);
+      setCurrentModel(selectedModel);
+      setModelSaveSuccess(true);
+      setTimeout(() => setModelSaveSuccess(false), 4000);
+    } catch {
+      setSaveError('Failed to update model.');
+    } finally {
+      setModelSaving(false);
+    }
+  };
+
+  const getModelIcon = (modelId: string) => {
+    if (modelId.includes('nano')) return CircleDollarSign;
+    if (modelId === 'gpt-4.1') return Crown;
+    if (modelId === 'gpt-4o') return Sparkles;
+    if (modelId.includes('4.1-mini')) return Rocket;
+    return Cpu;
+  };
+
+  const getRecommendedBadge = (rec: string) => {
+    switch (rec) {
+      case 'all':
+        return 'Best for Everything';
+      case 'email_generation':
+        return 'Best for Emails';
+      case 'query_parsing':
+        return 'Best for Parsing';
+      default:
+        return rec;
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -165,8 +230,126 @@ export default function SettingsPage() {
           <Settings className="w-6 h-6 text-[#94a3b8]" />
           Settings
         </h1>
-        <p className="text-[#94a3b8] mt-1">Manage your API keys</p>
+        <p className="text-[#94a3b8] mt-1">Manage your AI model and API keys</p>
       </div>
+
+      {/* Model Selection */}
+      {models.length > 0 && (
+        <div className="bg-[#12121a] border border-[#1e1e2e] rounded-lg p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center shrink-0">
+              <Cpu className="w-5 h-5 text-purple-400" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-[#e2e8f0]">
+                AI Model Selection
+              </h3>
+              <p className="text-xs text-[#94a3b8] mt-0.5">
+                Choose which OpenAI model powers query parsing and email generation
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            {models.map((model) => {
+              const isSelected = selectedModel === model.id;
+              const isCurrent = currentModel === model.id;
+              const isRecommended = model.id === 'gpt-4.1-mini';
+              const ModelIcon = getModelIcon(model.id);
+
+              return (
+                <button
+                  key={model.id}
+                  onClick={() => setSelectedModel(model.id)}
+                  className={`w-full text-left p-3 rounded-lg border transition-all ${
+                    isSelected
+                      ? 'border-blue-500 bg-blue-500/5'
+                      : 'border-[#1e1e2e] bg-[#0a0a0f] hover:border-[#2a2a3e]'
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-2.5">
+                      {/* Radio indicator */}
+                      <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                        isSelected
+                          ? 'border-blue-500'
+                          : 'border-[#3a3a4e]'
+                      }`}>
+                        {isSelected && (
+                          <div className="w-2 h-2 rounded-full bg-blue-500" />
+                        )}
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <ModelIcon className={`w-3.5 h-3.5 ${isSelected ? 'text-blue-400' : 'text-[#94a3b8]'}`} />
+                          <span className="text-sm font-medium text-[#e2e8f0]">
+                            {model.name}
+                          </span>
+                          {isRecommended && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20 font-medium">
+                              Recommended
+                            </span>
+                          )}
+                          {isCurrent && !isRecommended && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                              Current
+                            </span>
+                          )}
+                          {isCurrent && isRecommended && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                              Current
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-[#94a3b8] mt-0.5 ml-5">
+                          {model.description}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-end gap-1 shrink-0 ml-3">
+                      <span className="text-[10px] text-[#94a3b8] font-mono">
+                        {model.cost}
+                      </span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#1e1e2e] text-[#94a3b8]">
+                        {getRecommendedBadge(model.recommended_for)}
+                      </span>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Update Model Button */}
+          <div className="flex items-center gap-3 mt-4">
+            <button
+              onClick={handleModelSave}
+              disabled={modelSaving || selectedModel === currentModel}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:hover:bg-purple-600 text-white font-medium rounded-lg text-sm transition-colors"
+            >
+              {modelSaving ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Cpu className="w-3.5 h-3.5" />
+              )}
+              {modelSaving ? 'Updating...' : 'Update Model'}
+            </button>
+            {modelSaveSuccess && (
+              <span className="flex items-center gap-1.5 text-xs text-green-400">
+                <CheckCircle className="w-3.5 h-3.5" />
+                Model updated to {models.find((m) => m.id === currentModel)?.name}
+              </span>
+            )}
+            {selectedModel !== currentModel && !modelSaving && (
+              <span className="text-xs text-[#94a3b8]">
+                Switching from {models.find((m) => m.id === currentModel)?.name} to {models.find((m) => m.id === selectedModel)?.name}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Service Cards */}
       {services.map((svc) => {
