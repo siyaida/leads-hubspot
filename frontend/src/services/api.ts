@@ -129,15 +129,26 @@ export async function getPromptPreview(
   return res.data;
 }
 
-export async function downloadExportCsv(sessionId: string): Promise<void> {
-  const res = await api.get(`/export/${sessionId}`, { responseType: 'blob' });
+export async function downloadExportCsv(
+  sessionId: string,
+  exportType: string = 'full',
+  customFields?: string[]
+): Promise<void> {
+  const params: Record<string, string> = { export_type: exportType };
+  if (exportType === 'custom' && customFields?.length) {
+    params.custom_fields = customFields.join(',');
+  }
+  const res = await api.get(`/export/${sessionId}`, {
+    params,
+    responseType: 'blob',
+  });
   const blob = new Blob([res.data], { type: 'text/csv' });
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
   const disposition = res.headers['content-disposition'] || '';
   const match = disposition.match(/filename="?([^"]+)"?/);
-  a.download = match ? match[1] : `siyada_leads_${sessionId.slice(0, 8)}.csv`;
+  a.download = match ? match[1] : `siyada_${exportType}_${sessionId.slice(0, 8)}.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

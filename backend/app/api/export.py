@@ -1,8 +1,9 @@
 import io
 import logging
 from datetime import datetime, timezone
+from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -17,14 +18,24 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/export", tags=["export"])
 
+VALID_EXPORT_TYPES = {"contacts", "companies", "contacts_companies", "outreach", "full", "custom"}
+
 
 @router.get("/{session_id}")
 def export_leads(
     session_id: str,
+    export_type: str = Query("full", description="Export type"),
+    custom_fields: Optional[str] = Query(None, description="Comma-separated field keys for custom export"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """Generate and return a CSV file for the session's selected leads."""
+    if export_type not in VALID_EXPORT_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid export_type. Must be one of: {', '.join(sorted(VALID_EXPORT_TYPES))}",
+        )
+
     # Verify session belongs to current user
     session = (
         db.query(SearchSession)
@@ -54,12 +65,21 @@ def export_leads(
             detail="No selected leads found for this session",
         )
 
-    # Generate CSV bytes
-    csv_bytes = export_service.generate_csv(leads)
+    # Parse custom fields
+    custom_fields_list = (
+        [f.strip() for f in custom_fields.split(",") if f.strip()]
+        if custom_fields
+        else None
+    )
 
-    # Build filename: siyada_leads_{first8chars}_{date}.csv
+    # Generate CSV bytes
+    csv_bytes = export_service.generate_csv(
+        leads, export_type=export_type, custom_fields=custom_fields_list
+    )
+
+    # Build filename: siyada_{type}_{first8chars}_{date}.csv
     date_str = datetime.now(timezone.utc).strftime("%Y%m%d")
-    filename = f"siyada_leads_{session_id[:8]}_{date_str}.csv"
+    filename = f"siyada_{export_type}_{session_id[:8]}_{date_str}.csv"
 
     return StreamingResponse(
         io.BytesIO(csv_bytes),

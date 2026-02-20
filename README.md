@@ -77,9 +77,9 @@ Siyada AI is an end-to-end lead generation engine built for B2B sales teams. It 
 │  (GPT)   │  │ (Serper) │  │   .io    │  │  (GPT)   │  │(HubSpot)│
 └──────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────┘
      │              │              │              │              │
-  Extract        Find          Find           Write         19-col
-  entities      companies    decision-      personalized    HubSpot
-  & intents     & URLs       makers         cold emails     CSV file
+  Extract        Find          Find           Write         Smart
+  entities      companies    decision-      personalized    Export
+  & intents     & URLs       makers         cold emails     Center
 ```
 
 | Step | Engine | What Happens |
@@ -88,7 +88,7 @@ Siyada AI is an end-to-end lead generation engine built for B2B sales teams. It 
 | **2. Search** | Serper.dev | Runs Google searches, collects company URLs, scrapes websites for context |
 | **3. Enrich** | Apollo.io | Finds decision-makers with verified emails, phones, LinkedIn profiles |
 | **4. Generate** | OpenAI GPT | Writes personalized outreach emails with strategic approach notes |
-| **5. Export** | Built-in | Generates a 19-column CSV that imports directly into HubSpot |
+| **5. Export** | Built-in | Smart Export Center with 6 export types, HubSpot guides, and column previews |
 
 ---
 
@@ -101,7 +101,7 @@ Siyada AI is an end-to-end lead generation engine built for B2B sales teams. It 
 - **Website Scraping** — Extracts company context from websites for email personalization.
 - **Contact Enrichment** — Apollo.io integration for verified emails, phones, titles, and LinkedIn.
 - **AI-Generated Outreach** — Personalized cold emails with subject lines and strategic approach notes.
-- **HubSpot CSV Export** — 19 columns mapped exactly to HubSpot's import specification.
+- **Smart Export Center** — 6 export types (Contacts, Companies, Contacts+Companies, Outreach, Full, Custom) with HubSpot import guides, tips, and column previews.
 
 ### Platform
 - **Live Activity Feed** — Real-time streaming log during pipeline execution. See every query searched, contact found, and email written as it happens — with progress bar and emoji indicators.
@@ -254,7 +254,7 @@ The app will be available at `http://localhost:5173`.
 |--------|----------|-------------|
 | `GET` | `/api/generate/{session_id}/prompt-preview` | Preview system prompt and lead data |
 | `POST` | `/api/generate/{session_id}` | Generate outreach emails (accepts custom prompt) |
-| `GET` | `/api/export/{session_id}` | Download HubSpot CSV |
+| `GET` | `/api/export/{session_id}?export_type=contacts&custom_fields=first_name,email` | Download HubSpot CSV (6 export types) |
 
 ### Settings
 
@@ -272,33 +272,29 @@ Full interactive API docs available at `http://localhost:8000/docs` when the bac
 
 ---
 
-## HubSpot CSV Specification
+## Smart Export Center
 
-The exported CSV maps directly to HubSpot's default contact/company properties for seamless import:
+Choose the right export for your workflow — each type includes HubSpot import guides, tips, and column previews:
 
-| # | Column Header | HubSpot Property | Data Source |
-|---|--------------|-------------------|-------------|
-| 1 | First Name | `firstname` | Apollo.io |
-| 2 | Last Name | `lastname` | Apollo.io |
-| 3 | Email | `email` | Apollo.io |
-| 4 | Phone Number | `phone` | Apollo.io |
-| 5 | Job Title | `jobtitle` | Apollo.io |
-| 6 | Company Name | `company` | Web Search |
-| 7 | Company Domain Name | `domain` | Web Search |
-| 8 | Website URL | `website` | Web Search |
-| 9 | Description | `description` | Scraping + AI |
-| 10 | Industry | `industry` | Apollo.io |
-| 11 | Street Address | `address` | Apollo.io |
-| 12 | City | `city` | Apollo.io |
-| 13 | State/Region | `state` | Apollo.io |
-| 14 | Country/Region | `country` | Apollo.io |
-| 15 | Number of Employees | `numberofemployees` | Apollo.io |
-| 16 | LinkedIn URL | `linkedin` | Apollo.io |
-| 17 | Company LinkedIn URL | `linkedin_company` | Apollo.io |
-| 18 | Personalized Email Draft | Custom | OpenAI GPT |
-| 19 | Suggested Approach | Custom | OpenAI GPT |
+| Export Type | Columns | Use Case |
+|------------|---------|----------|
+| **Contacts** | 6 | First Name, Last Name, Email, Phone, Job Title, LinkedIn — for HubSpot Contacts import |
+| **Companies** | 6 | Company Name, Domain, Website, Industry, Size, Company LinkedIn — for HubSpot Companies import |
+| **Contacts + Companies** | 11 | Combined contact & company data — recommended for fresh CRM setups (two-object import) |
+| **Outreach** | 8 | Contact info + Email Subject, Email Body, Suggested Approach — for outreach tools |
+| **Full** | 20 | All available fields including location, description, and enrichment data |
+| **Custom** | Variable | Pick exactly which fields to include via multi-select checklist |
 
-> CSV uses UTF-8 BOM encoding for Excel compatibility. Empty fields are blank, not "null".
+### API Usage
+
+```
+GET /api/export/{session_id}?export_type=contacts
+GET /api/export/{session_id}?export_type=custom&custom_fields=first_name,email,company_name
+```
+
+Filename pattern: `siyada_{type}_{session_id[:8]}_{date}.csv`
+
+> CSV uses UTF-8 BOM encoding for Excel compatibility. Empty fields are blank, not "null". Each export type in the UI includes step-by-step HubSpot import instructions, optimization tips, and warnings.
 
 ---
 
@@ -404,7 +400,7 @@ leads-hubspot/
 │   │   │   ├── LeadDetailOverlay.tsx # Full lead detail modal
 │   │   │   ├── PromptEditor.tsx      # System prompt & context editor
 │   │   │   ├── EmailPreview.tsx      # Email editor with regenerate
-│   │   │   ├── ExportSummary.tsx     # Export stats + download
+│   │   │   ├── ExportSummary.tsx     # Smart Export Center (6 types + HubSpot guides)
 │   │   │   ├── Layout.tsx            # App shell with sidebar
 │   │   │   └── ProtectedRoute.tsx    # Auth guard
 │   │   ├── hooks/                    # Custom React hooks
@@ -439,7 +435,7 @@ leads-hubspot/
 - [x] Google search via Serper.dev
 - [x] Apollo.io contact enrichment
 - [x] AI-generated personalized emails
-- [x] HubSpot CSV export (19 columns)
+- [x] Smart Export Center (6 export types with HubSpot guides, tips, column previews)
 - [x] JWT authentication
 - [x] API key management with live testing
 - [x] Model switcher (10 models, GPT-5.2 to o4)
