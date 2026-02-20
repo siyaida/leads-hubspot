@@ -1,6 +1,7 @@
-import { Download, Users, MailCheck, FileText, ArrowRight } from 'lucide-react';
+import { useState } from 'react';
+import { Download, Users, MailCheck, FileText, ArrowRight, Loader2 } from 'lucide-react';
 import type { Lead } from '../types';
-import { getExportUrl } from '../services/api';
+import { downloadExportCsv } from '../services/api';
 
 interface ExportSummaryProps {
   leads: Lead[];
@@ -16,9 +17,19 @@ export default function ExportSummary({ leads, sessionId }: ExportSummaryProps) 
     (l) => l.personalized_email
   ).length;
 
-  const handleDownload = () => {
-    const url = getExportUrl(sessionId);
-    window.open(url, '_blank');
+  const [downloading, setDownloading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    setError(null);
+    try {
+      await downloadExportCsv(sessionId);
+    } catch {
+      setError('Failed to download CSV. Please try again.');
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const stats = [
@@ -78,11 +89,13 @@ export default function ExportSummary({ leads, sessionId }: ExportSummaryProps) 
       <div className="bg-[#12121a] border border-[#1e1e2e] rounded-lg p-6 text-center">
         <button
           onClick={handleDownload}
-          className="inline-flex items-center gap-3 px-8 py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg text-base"
+          disabled={downloading}
+          className="inline-flex items-center gap-3 px-8 py-3.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold rounded-lg text-base"
         >
-          <Download className="w-5 h-5" />
-          Download CSV
+          {downloading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
+          {downloading ? 'Downloading...' : 'Download CSV'}
         </button>
+        {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
         <div className="mt-4 flex items-center justify-center gap-2 text-sm text-[#94a3b8]">
           <ArrowRight className="w-4 h-4" />
           <p>
